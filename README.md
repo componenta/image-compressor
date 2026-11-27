@@ -1,53 +1,67 @@
 # Componenta Image Compressor
 
-Image compression helpers for Componenta. The package compresses image content without changing its format and selects a concrete compressor by detected MIME type.
+Re-encode images without changing their format. [Русская документация](README.ru.md).
 
 ## Installation
 
-```bash
+```sh
 composer require componenta/image-compressor
 ```
 
-The package declares `Componenta\Image\ImageCompressorConfigProvider` in `extra.componenta.config-providers`.
-When `componenta/composer-plugin` is installed, the provider is added to the generated provider list automatically.
+Requires PHP 8.4+, GD, EXIF, Componenta Config 4 and MIME Type Detector 2.
 
-The package requires PHP `^8.4`, `ext-gd`, `componenta/config`, `componenta/mimetype-detector`, PSR-11, and PSR-7 streams.
+## Usage
 
-## Main API
+The DI provider registers the `ImageCompressor` orchestrator and the four built-in GD codecs. Obtain the orchestrator from the container, or construct it with a `MimeTypeDetectorInterface` and an iterable of codecs.
 
 ```php
 use Componenta\Image\ImageCompressionOptions;
-use Componenta\Image\ImageCompressor;
 
-if ($compressor->canCompress($source)) {
-    $image = $compressor->compress($source, new ImageCompressionOptions(quality: 85));
-}
+$image = $compressor->compress($source, new ImageCompressionOptions(quality: 85));
+$png = $compressor->compress($pngSource, new ImageCompressionOptions(compressionLevel: 7));
 ```
 
-`$source` may be a binary string or `StreamInterface`. `CompressedImage` contains `content`, `mimeType`, `extension`, and computed `size`.
+The source is raw bytes (not a filesystem path) or a PSR-7 `StreamInterface`. The result is `CompressedImage` with read-only `content`, `mimeType`, `extension` and computed `size` in bytes.
 
-## Supported Formats
+## Formats and options
 
-Built-in GD compressors support JPEG, PNG, WebP, and AVIF when the local GD extension supports the target operation.
+JPEG, PNG, WebP and AVIF; built-in compressors accept only their own source format (including recognized MIME aliases).
 
-## Configuration
+Actual codec availability depends on the GD build. `supports()` reports the supported source MIME types and available native codecs. `canCompress($source)` checks routing and input-byte limits, not complete image validity.
 
-`ImageCompressorConfigProvider` registers:
+- `quality`: JPEG, WebP and AVIF, integer 0–100.
+- `compressionLevel`: PNG, integer 0–9; changes compression effort, not visual quality.
+- `avifSpeed`: AVIF, integer 0–10; lower values favor compression.
+- `onlyIfSmaller`: false by default. When true, return the original bytes if a successful re-encoding is not smaller. This can retain original metadata and trailing data; do not enable it when mandatory re-encoding is part of your upload policy.
 
-- `ImageCompressor`
-- `GdJpegCompressor`
-- `GdPngCompressor`
-- `GdWebPCompressor`
-- `GdAvifCompressor`
+Omitted settings use the codec defaults: JPEG 82, WebP and AVIF 80, PNG level 6, AVIF speed selected by GD. Unsupported options are rejected.
 
-`ImageCompressorFactory` uses `MimeTypeDetectorInterface` from the container when available and falls back to `FinfoDetector`.
+## Input ownership and resource limits
 
-## Options And Errors
+A seekable stream is read from its beginning and its position is restored on success or failure. A non-seekable stream is consumed once from its current position; capability probes return false without consuming it. The orchestrator sends the same bounded byte snapshot to detection and processing, including custom codecs.
 
-`ImageCompressionOptions::$quality` must be `null` or an integer from `0` to `100`. Invalid quality throws `CompressionException::invalidQuality()`.
+Default `ImageCompressionLimits` values: 32 MiB input, 16,000,000 pixels, width and height up to 8192. Supply a different limits object to the constructors or register it in the DI container. Built-in codecs check input bytes and declared dimensions before decoding. Custom codecs must enforce their own decoding limits.
 
-`ImageCompressor` throws `CompressionException` when the source type cannot be detected or no compressor supports it.
+These limits are not an absolute native-memory or CPU bound. Process isolation, upload validation and resource/time restrictions remain necessary for untrusted inputs.
 
-## Extension Points
+## Image fidelity and errors
 
-Implement `ImageCompressorInterface` and call `ImageCompressor::addCompressor()` to add another compressor.
+Built-in codecs process still images. GIF, declared APNG, animated WebP and AVIF sequences declaring the `avis` brand are unsupported. JPEG EXIF orientation is applied before re-encoding; JPEG output has a white background where transparency must be removed. PNG palette data is not unnecessarily converted to true color. GD does not provide full metadata, ICC profile, HDR or high-bit-depth preservation; PNG compression rejects 16-bit PNG. The output header is checked for format and dimensions, not fully re-decoded after every operation.
+
+Operational failures throw `CompressionException`. Invalid registration or limit configuration throws `InvalidArgumentException`. Unexpected programming errors are not silently suppressed.
+
+## Extension and integration
+
+Implement `ImageCompressorInterface` for a custom codec. The first registered compressor supporting a detected MIME type is selected. Add one with `addCompressor()`. The result MIME type must agree with the operation; custom codecs are responsible for valid bytes.
+
+The package declares `Componenta\Image\ImageCompressorConfigProvider` in Composer metadata for provider discovery. The factories use a registered MIME detector or create `FinfoDetector`. 
+
+## Development
+
+```sh
+composer test
+composer analyse
+composer bench
+```
+
+PHPBench scenarios require a GD build with all built-in codecs. They use deterministic synthetic images at 1, 4 and 12 MP (subject to input limits), and compare raw bytes with streams. See [UPGRADE.md](UPGRADE.md) for migration.
