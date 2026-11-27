@@ -50,7 +50,7 @@ final class ImageCompressor
             return false;
         }
 
-        if ($sourceMimeType === null) {
+        if ($sourceMimeType === null || !$sourceMimeType->isImage()) {
             return false;
         }
 
@@ -70,6 +70,10 @@ final class ImageCompressor
 
         if ($sourceMimeType === null) {
             throw CompressionException::undetectableSourceType();
+        }
+
+        if (!$sourceMimeType->isImage()) {
+            throw CompressionException::unsupportedSourceType($sourceMimeType->value);
         }
 
         $compressor = $this->findCompressor($sourceMimeType->value);

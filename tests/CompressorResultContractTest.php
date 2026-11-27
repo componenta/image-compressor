@@ -24,4 +24,18 @@ final class CompressorResultContractTest extends TestCase
         $this->expectException(CompressionException::class);
         (new ImageCompressor($detector, [$codec]))->compress('source');
     }
+
+    public function testNonImageDetectionIsRejectedBeforeConsultingCustomCodecs(): void
+    {
+        $detector = $this->createStub(MimeTypeDetectorInterface::class);
+        $detector->method('detectMimeType')->willReturn(new MimeType('text/plain'));
+        $codec = $this->createMock(ImageCompressorInterface::class);
+        $codec->expects($this->never())->method('supports');
+        $codec->expects($this->never())->method('compress');
+        $service = new ImageCompressor($detector, [$codec]);
+
+        self::assertFalse($service->canCompress('source'));
+        $this->expectException(CompressionException::class);
+        $service->compress('source');
+    }
 }

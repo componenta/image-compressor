@@ -7,6 +7,7 @@ namespace Componenta\Image\Tests;
 use Componenta\Image\CompressionException;
 use Componenta\Image\GdPngCompressor;
 use Componenta\Image\ImageCompressionOptions;
+use Componenta\Image\ImageCompressionLimits;
 use Componenta\Image\Compressor\Internal\EncodedOutput;
 use PHPUnit\Framework\TestCase;
 
@@ -28,5 +29,17 @@ final class CompressionPolicyTest extends TestCase
     {
         $this->expectException(CompressionException::class);
         (new GdPngCompressor())->compress('unused', new ImageCompressionOptions(quality: 80));
+    }
+
+    public function testOnlyIfSmallerDoesNotBypassTheEncodingOutputLimit(): void
+    {
+        $image = imagecreatetruecolor(64, 64);
+        self::assertInstanceOf(\GdImage::class, $image);
+        $source = EncodedOutput::capture(static fn(): bool => imagepng($image, null, 9));
+        $codec = new GdPngCompressor(limits: new ImageCompressionLimits(maxOutputBytes: strlen($source)));
+
+        $this->expectException(CompressionException::class);
+        $this->expectExceptionMessage('output byte limit');
+        $codec->compress($source, new ImageCompressionOptions(compressionLevel: 0, onlyIfSmaller: true));
     }
 }

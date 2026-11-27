@@ -32,7 +32,7 @@ Actual codec availability depends on the GD build. `supports()` reports the supp
 - `quality`: JPEG, WebP and AVIF, integer 0–100.
 - `compressionLevel`: PNG, integer 0–9; changes compression effort, not visual quality.
 - `avifSpeed`: AVIF, integer 0–10; lower values favor compression.
-- `onlyIfSmaller`: false by default. When true, return the original bytes if a successful re-encoding is not smaller. This can retain original metadata and trailing data; do not enable it when mandatory re-encoding is part of your upload policy.
+- `onlyIfSmaller`: false by default. When true, return the original bytes if a successful re-encoding is not smaller. The input and intermediate encoded output limits are still enforced; an encoding that exceeds its limit fails even if the original fits. This can retain original metadata and trailing data; do not enable it when mandatory re-encoding is part of your upload policy.
 
 Omitted settings use the codec defaults: JPEG 82, WebP and AVIF 80, PNG level 6, AVIF speed selected by GD. Unsupported options are rejected.
 
