@@ -37,11 +37,11 @@ final class ImageCompressor
             return false;
         }
 
-        if (!is_string($sourceMimeType) || $sourceMimeType === '') {
+        if ($sourceMimeType === null) {
             return false;
         }
 
-        return $this->findCompressor($sourceMimeType) instanceof ImageCompressorInterface;
+        return $this->findCompressor($sourceMimeType->value) instanceof ImageCompressorInterface;
     }
 
     public function compress(
@@ -50,14 +50,14 @@ final class ImageCompressor
     ): CompressedImage {
         $sourceMimeType = $this->detector->detectMimeType($source);
 
-        if (!is_string($sourceMimeType) || $sourceMimeType === '') {
+        if ($sourceMimeType === null) {
             throw CompressionException::undetectableSourceType();
         }
 
-        $compressor = $this->findCompressor($sourceMimeType);
+        $compressor = $this->findCompressor($sourceMimeType->value);
 
         if (!$compressor instanceof ImageCompressorInterface) {
-            throw CompressionException::unsupportedSourceType($sourceMimeType);
+            throw CompressionException::unsupportedSourceType($sourceMimeType->value);
         }
 
         return $compressor->compress($source, $options);
