@@ -88,14 +88,8 @@ final class GdProcessor
                 $image = self::expandColorKey($image);
             }
             self::preserveAlpha($image);
-        } elseif ($target === 'image/png' && imageistruecolor($image)) {
-            if (imagecolortransparent($image) >= 0) {
-                // An RGB PNG with a transparent color is encoded via tRNS. Enabling
-                // full-alpha saving here would discard the color key.
-                self::requireSuccess(static fn() => imagesavealpha($image, false), 'Failed to preserve PNG color key.');
-            } else {
-                self::preserveAlpha($image);
-            }
+        } elseif ($target === 'image/png') {
+            self::preparePng($image);
         }
 
         $encoded = EncodedOutput::capture(static fn(): bool => self::native(static fn(): bool => match ($target) {
@@ -190,6 +184,35 @@ final class GdProcessor
         self::requireSuccess(static fn() => imagecopy($canvas, $source, 0, 0, 0, 0, $width, $height), 'Failed to expand color-key transparency.');
 
         return $canvas;
+    }
+
+    private static function preparePng(GdImage $image): void
+    {
+        $key = imagecolortransparent($image);
+        if (imageistruecolor($image)) {
+            if ($key >= 0) {
+                // RGB tRNS must remain a color key, not an empty alpha channel.
+                self::requireSuccess(static fn() => imagesavealpha($image, false), 'Failed to preserve PNG color key.');
+            } else {
+                self::preserveAlpha($image);
+            }
+
+            return;
+        }
+        if ($key < 0) {
+            return;
+        }
+        // GD's grayscale PNG decoder can store tRNS solely as a palette
+        // transparent index. The palette PNG encoder uses per-entry alpha.
+        $color = self::native(static fn() => imagecolorsforindex($image, $key));
+        if ($color['alpha'] !== 127) {
+            self::native(static function () use ($image, $key, $color): void {
+                imagecolorset($image, $key, $color['red'], $color['green'], $color['blue'], 127);
+            });
+            if (self::native(static fn() => imagecolorsforindex($image, $key))['alpha'] !== 127) {
+                throw new CompressionException('Failed to preserve PNG palette transparency.');
+            }
+        }
     }
 
     private static function preserveAlpha(GdImage $image): void
