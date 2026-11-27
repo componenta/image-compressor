@@ -6,7 +6,6 @@ namespace Componenta\Image;
 
 use Componenta\Detector\DetectorException;
 use Componenta\Detector\MimeTypeDetectorInterface;
-use Componenta\Detector\MimeType;
 use Componenta\Image\Compressor\Internal\MimeAliases;
 use Componenta\Image\Compressor\Internal\SourceReader;
 use Psr\Http\Message\StreamInterface;
@@ -79,9 +78,7 @@ final class ImageCompressor
         if ($image->size > $this->limits->maxOutputBytes) {
             throw new CompressionException('Encoded image exceeds the output byte limit.');
         }
-        $resultMime = MimeType::tryCreate($image->mimeType);
-        if ($image->content === '' || $resultMime === null || !$resultMime->isImage()
-            || MimeAliases::normalize($resultMime->value) !== MimeAliases::normalize($sourceMimeType->value)) {
+        if (MimeAliases::normalize($image->mimeType) !== MimeAliases::normalize($sourceMimeType->value)) {
             throw new CompressionException('Compressor returned an invalid or different image format.');
         }
 

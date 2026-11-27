@@ -7,3 +7,5 @@
 - Seekable stream positions are preserved; one-shot streams are consumed by the operation, never by capability probes. Custom codecs receive raw bytes from the orchestrator.
 - Limits default to 32 MiB, 16 million pixels and 8192 pixels in either dimension, and 64 MiB encoded output. Configure explicit limits for larger trusted sources.
 - JPEG EXIF orientation is applied during re-encoding. Full metadata and ICC profile preservation are not promised.
+
+- Result objects reject empty bytes, non-image or parameterized MIME types, and invalid extensions. MIME and extension metadata are normalized to lowercase.
