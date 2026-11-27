@@ -54,6 +54,9 @@ final class GdProcessor
             || $height > intdiv($limits->maxPixels, $width)) {
             throw new CompressionException('Image dimensions exceed configured limits.');
         }
+        if ($mime === 'image/jpeg') {
+            JpegStructure::assertComplete($raw);
+        }
         self::assertStatic($raw, $mime);
         if ($mime === 'image/png' && $target === 'image/png' && ($info['bits'] ?? 8) > 8) {
             throw new CompressionException('GD cannot preserve the bit depth of this PNG.');
