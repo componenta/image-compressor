@@ -92,7 +92,9 @@ final class GdProcessor
             }
             self::preserveAlpha($image);
         } elseif ($target === 'image/png') {
-            self::preparePng($image);
+            // GD has already decoded the validated PNG. IHDR color type 2
+            // carries RGB samples, with an optional single transparent color.
+            self::preparePng($image, $mime === 'image/png' && $raw[25] === "\x02");
         }
 
         $encoded = EncodedOutput::capture(static fn(): bool => self::native(static fn(): bool => match ($target) {
@@ -189,13 +191,14 @@ final class GdProcessor
         return $canvas;
     }
 
-    private static function preparePng(GdImage $image): void
+    private static function preparePng(GdImage $image, bool $rgbSource): void
     {
         $key = imagecolortransparent($image);
         if (imageistruecolor($image)) {
-            if ($key >= 0) {
-                // RGB tRNS must remain a color key, not an empty alpha channel.
-                self::requireSuccess(static fn() => imagesavealpha($image, false), 'Failed to preserve PNG color key.');
+            if ($rgbSource || $key >= 0) {
+                // Preserve the RGB representation, including an optional tRNS
+                // color key, rather than introducing a redundant alpha channel.
+                self::requireSuccess(static fn() => imagesavealpha($image, false), 'Failed to preserve PNG RGB representation.');
             } else {
                 self::preserveAlpha($image);
             }
