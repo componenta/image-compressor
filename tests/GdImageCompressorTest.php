@@ -43,7 +43,7 @@ final class GdImageCompressorTest extends TestCase
 
     public function testCompressesAvifWithoutChangingFormatWhenAvailable(): void
     {
-        if (!function_exists('imageavif')) {
+        if (!(imagetypes() & IMG_AVIF) || !function_exists('imageavif')) {
             self::markTestSkipped('AVIF is not available in the current GD build.');
         }
 
@@ -90,7 +90,7 @@ final class GdImageCompressorTest extends TestCase
         $color = imagecolorallocatealpha($gd, 30, 120, 220, 20);
 
         if ($color === false) {
-            imagedestroy($gd);
+
             self::fail('Unable to allocate fixture color.');
         }
 
@@ -99,7 +99,7 @@ final class GdImageCompressorTest extends TestCase
         ob_start();
         $success = $encoder($gd);
         $content = ob_get_clean();
-        imagedestroy($gd);
+
 
         self::assertTrue($success);
         self::assertIsString($content);
