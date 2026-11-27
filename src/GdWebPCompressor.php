@@ -26,11 +26,11 @@ final readonly class GdWebPCompressor implements ImageCompressorInterface
         string|StreamInterface $source,
         ?ImageCompressionOptions $options = null,
     ): CompressedImage {
-        $level = $options?->quality ?? $this->defaultQuality;
-        if ($level < 0 || $level > 100) {
-            throw CompressionException::invalidQuality($level);
+        if ($options?->compressionLevel !== null || $options?->avifSpeed !== null) {
+            throw new CompressionException('Options are not supported by this image codec.');
         }
-        $content = GdProcessor::process($source, self::SUPPORTED, 'image/webp', $level, $this->limits);
+        $level = $options?->quality ?? $this->defaultQuality;
+        $content = GdProcessor::process($source, self::SUPPORTED, 'image/webp', $level, $this->limits, avifSpeed: null, onlyIfSmaller: $options?->onlyIfSmaller ?? false);
 
         return new CompressedImage($content, 'image/webp', 'webp');
     }

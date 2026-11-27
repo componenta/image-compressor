@@ -25,7 +25,7 @@ final class GdImageCompressorTest extends TestCase
 
     public function testCompressesPngWithoutChangingFormat(): void
     {
-        $image = (new GdPngCompressor())->compress($this->pngFixture(), new ImageCompressionOptions(quality: 65));
+        $image = (new GdPngCompressor())->compress($this->pngFixture(), new ImageCompressionOptions(compressionLevel: 6));
 
         self::assertSame('image/png', $image->mimeType);
         self::assertSame('png', $image->extension);

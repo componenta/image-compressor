@@ -27,6 +27,18 @@ final class ImageCompressionOptionsTest extends TestCase
         new ImageCompressionOptions(quality: $quality);
     }
 
+    public function testRejectsMixedPngAndLossyOptions(): void
+    {
+        $this->expectException(CompressionException::class);
+        new ImageCompressionOptions(quality: 80, compressionLevel: 6);
+    }
+
+    public function testAcceptsBoundaryCodecOptions(): void
+    {
+        self::assertSame(9, new ImageCompressionOptions(compressionLevel: 9)->compressionLevel);
+        self::assertSame(10, new ImageCompressionOptions(avifSpeed: 10)->avifSpeed);
+    }
+
     public static function invalidQualityValues(): iterable
     {
         yield 'less than zero' => [-1];

@@ -46,6 +46,8 @@ final class GdProcessor
         string $target,
         int $quality,
         ImageCompressionLimits $limits,
+        ?int $avifSpeed = null,
+        bool $onlyIfSmaller = false,
     ): string {
         $raw = SourceReader::read($source, $limits->maxInputBytes);
         $info = self::native(static fn() => getimagesizefromstring($raw));
@@ -95,7 +97,7 @@ final class GdProcessor
             'image/jpeg' => imagejpeg($image, null, $quality),
             'image/png' => imagepng($image, null, $quality),
             'image/webp' => imagewebp($image, null, $quality),
-            'image/avif' => imageavif($image, null, $quality),
+            'image/avif' => imageavif($image, null, $quality, $avifSpeed ?? -1),
             default => throw new CompressionException('Unsupported encoding format.'),
         }));
         $output = self::native(static fn() => getimagesizefromstring($encoded));
@@ -104,7 +106,7 @@ final class GdProcessor
             throw new CompressionException('Encoded image header does not match the requested format and dimensions.');
         }
 
-        return $encoded;
+        return $onlyIfSmaller && strlen($encoded) >= strlen($raw) ? $raw : $encoded;
     }
 
     private static function available(string $mime): bool

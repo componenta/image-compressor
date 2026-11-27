@@ -10,6 +10,8 @@ interface ImageCompressorInterface
 {
     /**
      * Compress image content without changing its format.
+     * The options are format-specific; unsupported options must be rejected.
+     * If onlyIfSmaller is enabled, the original bytes may be returned.
      *
      * @throws CompressionException
      */
