@@ -89,7 +89,7 @@ final class GdProcessor
             'image/webp' => imagewebp($image, null, $quality),
             'image/avif' => imageavif($image, null, $quality, $avifSpeed ?? -1),
             default => throw new CompressionException('Unsupported encoding format.'),
-        }));
+        }), $limits->maxOutputBytes);
         $output = self::native(static fn() => getimagesizefromstring($encoded));
         if ($output === false || MimeAliases::normalize($output['mime']) !== $target
             || $output[0] !== imagesx($image) || $output[1] !== imagesy($image)) {

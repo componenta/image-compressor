@@ -5,5 +5,5 @@
 - PNG options use `compressionLevel: 0..9`, not `quality`. For the old mapping, use `9 - (int) round($oldQuality / 100 * 9)`.
 - `ImageCompressionOptions` adds `compressionLevel`, `avifSpeed` and `onlyIfSmaller`. Same-format results are enforced.
 - Seekable stream positions are preserved; one-shot streams are consumed by the operation, never by capability probes. Custom codecs receive raw bytes from the orchestrator.
-- Limits default to 32 MiB, 16 million pixels and 8192 pixels in either dimension. Configure explicit limits for larger trusted sources.
+- Limits default to 32 MiB, 16 million pixels and 8192 pixels in either dimension, and 64 MiB encoded output. Configure explicit limits for larger trusted sources.
 - JPEG EXIF orientation is applied during re-encoding. Full metadata and ICC profile preservation are not promised.
