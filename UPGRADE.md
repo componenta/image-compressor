@@ -9,3 +9,5 @@
 - JPEG EXIF orientation is applied during re-encoding. Full metadata and ICC profile preservation are not promised.
 
 - Result objects reject empty bytes, non-image or parameterized MIME types, and invalid extensions. MIME and extension metadata are normalized to lowercase.
+
+- A failed seekable stream restoration now throws `CompressionStreamPositionRestoreException` from both operations and capability probes. It preserves both failure causes instead of silently returning false.

@@ -42,6 +42,9 @@ final class ImageCompressor
         try {
             $source = SourceReader::read($source, $this->limits->maxInputBytes);
             $sourceMimeType = $this->detector->detectMimeType($source);
+        } catch (CompressionStreamPositionRestoreException $error) {
+            // A failed restoration is a broken ownership guarantee, not a negative capability.
+            throw $error;
         } catch (DetectorException|CompressionException) {
             return false;
         }

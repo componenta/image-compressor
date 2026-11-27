@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Componenta\Image;
 
-final class CompressionException extends \RuntimeException
+class CompressionException extends \RuntimeException
 {
     public static function undetectableSourceType(): self
     {

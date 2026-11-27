@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Componenta\Image\Compressor\Internal;
 
 use Componenta\Image\CompressionException;
+use Componenta\Image\CompressionStreamPositionRestoreException;
 use Psr\Http\Message\StreamInterface;
 
 /** @internal */
@@ -19,6 +20,7 @@ final class SourceReader
         }
 
         $position = null;
+        $failure = null;
         try {
             if (!$source->isReadable()) {
                 throw new CompressionException('Image source is not readable.');
@@ -47,16 +49,17 @@ final class SourceReader
             }
 
             return $bytes;
-        } catch (CompressionException $error) {
-            throw $error;
-        } catch (\RuntimeException $error) {
-            throw new CompressionException('Unable to read image source.', previous: $error);
+        } catch (\Throwable $error) {
+            $failure = $error instanceof \RuntimeException && !$error instanceof CompressionException
+                ? new CompressionException('Unable to read image source.', previous: $error)
+                : $error;
+            throw $failure;
         } finally {
             if ($position !== null) {
                 try {
                     $source->seek($position);
-                } catch (\RuntimeException $error) {
-                    throw new CompressionException('Unable to restore image source position.', previous: $error);
+                } catch (\Throwable $error) {
+                    throw new CompressionStreamPositionRestoreException($error, $failure);
                 }
             }
         }
