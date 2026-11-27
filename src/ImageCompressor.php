@@ -17,6 +17,7 @@ final class ImageCompressor
 
     /**
      * @param iterable<ImageCompressorInterface> $compressors
+     * @param ImageCompressionLimits $limits Byte limits for the orchestrator; configure each codec's own geometry and byte limits.
      */
     public function __construct(
         private readonly MimeTypeDetectorInterface $detector,
