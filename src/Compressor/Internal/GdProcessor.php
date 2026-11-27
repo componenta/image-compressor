@@ -12,20 +12,10 @@ use Psr\Http\Message\StreamInterface;
 /** @internal */
 final class GdProcessor
 {
-    public static function normalize(string $mimeType): string
-    {
-        return match (strtolower(trim($mimeType))) {
-            'image/pjpeg' => 'image/jpeg',
-            'image/x-png' => 'image/png',
-            'image/x-ms-bmp' => 'image/bmp',
-            default => strtolower(trim($mimeType)),
-        };
-    }
-
     /** @param list<string> $allowed */
     public static function supports(string $source, array $allowed, string $target): bool
     {
-        $source = self::normalize($source);
+        $source = MimeAliases::normalize($source);
 
         return in_array($source, $allowed, true)
             && self::available($source)
@@ -54,7 +44,7 @@ final class GdProcessor
         if ($info === false) {
             throw new CompressionException('Unable to identify image dimensions and format.');
         }
-        $mime = self::normalize($info['mime']);
+        $mime = MimeAliases::normalize($info['mime']);
         if (!self::supports($mime, $allowed, $target)) {
             throw new CompressionException('Source or target image format is unsupported by this GD codec.');
         }
@@ -101,7 +91,7 @@ final class GdProcessor
             default => throw new CompressionException('Unsupported encoding format.'),
         }));
         $output = self::native(static fn() => getimagesizefromstring($encoded));
-        if ($output === false || self::normalize($output['mime']) !== $target
+        if ($output === false || MimeAliases::normalize($output['mime']) !== $target
             || $output[0] !== imagesx($image) || $output[1] !== imagesy($image)) {
             throw new CompressionException('Encoded image header does not match the requested format and dimensions.');
         }

@@ -6,6 +6,8 @@ namespace Componenta\Image;
 
 use Componenta\Detector\DetectorException;
 use Componenta\Detector\MimeTypeDetectorInterface;
+use Componenta\Detector\MimeType;
+use Componenta\Image\Compressor\Internal\MimeAliases;
 use Componenta\Image\Compressor\Internal\SourceReader;
 use Psr\Http\Message\StreamInterface;
 
@@ -73,7 +75,14 @@ final class ImageCompressor
             throw CompressionException::unsupportedSourceType($sourceMimeType->value);
         }
 
-        return $compressor->compress($source, $options);
+        $image = $compressor->compress($source, $options);
+        $resultMime = MimeType::tryCreate($image->mimeType);
+        if ($image->content === '' || $resultMime === null || !$resultMime->isImage()
+            || MimeAliases::normalize($resultMime->value) !== MimeAliases::normalize($sourceMimeType->value)) {
+            throw new CompressionException('Compressor returned an invalid or different image format.');
+        }
+
+        return $image;
     }
 
     private function findCompressor(string $sourceMimeType): ?ImageCompressorInterface
