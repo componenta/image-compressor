@@ -1,0 +1,37 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Componenta\Image\Compressor\Internal;
+
+use Componenta\Image\CompressionException;
+
+/** @internal */
+final class JpegOrientation
+{
+    public static function read(string $raw): int
+    {
+        // A bounded JPEG snapshot is already owned by the processor.
+        // The EXIF reader requires a seekable stream and does not own it.
+        $stream = fopen('php://temp', 'w+b');
+        if ($stream === false) {
+            throw new CompressionException('Unable to open JPEG metadata stream.');
+        }
+        try {
+            if (fwrite($stream, $raw) !== strlen($raw) || !rewind($stream)) {
+                throw new CompressionException('Unable to prepare JPEG metadata stream.');
+            }
+            $metadata = exif_read_data($stream, 'IFD0', true, false);
+            $orientation = $metadata === false ? 1 : ($metadata['IFD0']['Orientation'] ?? 1);
+            if (!is_int($orientation) || $orientation < 1 || $orientation > 8) {
+                throw new CompressionException('Invalid JPEG orientation.');
+            }
+
+            return $orientation;
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+    }
+}
