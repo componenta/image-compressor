@@ -22,10 +22,16 @@ final class ImageCompressorBench
 {
     private ImageCompressor $service;
     private string $source;
+    private bool $baseline = false;
 
     /** @param array{source: string, target: string, width: int, height: int, stream: bool} $params */
     public function setUp(array $params): void
     {
+        $file = (new \ReflectionClass(ImageCompressor::class))->getFileName();
+        $this->baseline = is_string($file) && str_contains($file, '/.benchmark-baseline/');
+        if ($this->baseline !== (getenv('IMAGE_BENCH_BASELINE') === '1')) {
+            throw new \RuntimeException('Benchmark resolved the wrong library version: ' . $file);
+        }
         $image = imagecreatetruecolor($params['width'], $params['height']);
         if ($image === false) {
             throw new \RuntimeException('Unable to allocate fixture.');
@@ -62,6 +68,12 @@ final class ImageCompressorBench
     public function benchProcess(array $params): void
     {
         $source = $params['stream'] ? Utils::streamFor($this->source) : $this->source;
+        if ($this->baseline) {
+            // v1 maps quality=33 to PNG compression level 6.
+            $quality = $params['target'] === 'png' ? 33 : 80;
+            $this->service->compress($source, new ImageCompressionOptions(quality: $quality));
+            return;
+        }
         $options = $params['target'] === 'png'
             ? new ImageCompressionOptions(compressionLevel: 6)
             : new ImageCompressionOptions(quality: 80);
@@ -72,9 +84,17 @@ final class ImageCompressorBench
     public function cases(): iterable
     {
         $pairs = [['jpeg', 'jpeg'], ['png', 'png'], ['webp', 'webp'], ['avif', 'avif']];
+        $compare = getenv('IMAGE_BENCH_COMPARE') === '1';
         foreach ($pairs as [$source, $target]) {
+
             foreach ([[1000, 1000], [2000, 2000], [4000, 3000]] as [$width, $height]) {
+                if ($compare && $width === 4000 && !in_array($target, ['jpeg', 'png'], true)) {
+                    continue;
+                }
                 foreach ([false, true] as $stream) {
+                    if ($compare && $stream && $width !== 1000) {
+                        continue;
+                    }
                     yield sprintf('%s-%s-%dx%d-%s', $source, $target, $width, $height, $stream ? 'stream' : 'bytes') => [
                         'source' => $source, 'target' => $target,
                         'width' => $width, 'height' => $height, 'stream' => $stream,
