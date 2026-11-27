@@ -13,3 +13,5 @@
 - A failed seekable stream restoration now throws `CompressionStreamPositionRestoreException` from both operations and capability probes. It preserves both failure causes instead of silently returning false.
 
 - For image MIME types mapped in the default MIME catalog, result extensions must match that catalog. Unmapped custom image types can supply their own valid extension.
+
+- AVIF input with associated non-identity display transformations is rejected instead of silently dropping those transformations during re-encoding. Identity and unused properties remain accepted.
