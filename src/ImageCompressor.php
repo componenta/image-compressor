@@ -82,6 +82,10 @@ final class ImageCompressor
             throw new CompressionException('Compressor returned an invalid or different image format.');
         }
 
+        if ($options?->onlyIfSmaller === true && strlen($image->content) >= strlen($source)) {
+            return new CompressedImage($source, $image->mimeType, $image->extension);
+        }
+
         return $image;
     }
 
