@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Componenta\Image;
 
+use Componenta\Detector\DetectorException;
 use Componenta\Detector\MimeTypeDetectorInterface;
+use Componenta\Image\Compressor\Internal\SourceReader;
 use Psr\Http\Message\StreamInterface;
 
 final class ImageCompressor
@@ -18,6 +20,7 @@ final class ImageCompressor
     public function __construct(
         private readonly MimeTypeDetectorInterface $detector,
         iterable $compressors = [],
+        private readonly ImageCompressionLimits $limits = new ImageCompressionLimits(),
     ) {
         foreach ($compressors as $compressor) {
             $this->addCompressor($compressor);
@@ -31,9 +34,14 @@ final class ImageCompressor
 
     public function canCompress(string|StreamInterface $source): bool
     {
+        // A capability probe must not consume a one-shot stream.
+        if ($source instanceof StreamInterface && !$source->isSeekable()) {
+            return false;
+        }
         try {
+            $source = SourceReader::read($source, $this->limits->maxInputBytes);
             $sourceMimeType = $this->detector->detectMimeType($source);
-        } catch (\Throwable) {
+        } catch (DetectorException|CompressionException) {
             return false;
         }
 
@@ -48,7 +56,12 @@ final class ImageCompressor
         string|StreamInterface $source,
         ?ImageCompressionOptions $options = null,
     ): CompressedImage {
-        $sourceMimeType = $this->detector->detectMimeType($source);
+        $source = SourceReader::read($source, $this->limits->maxInputBytes);
+        try {
+            $sourceMimeType = $this->detector->detectMimeType($source);
+        } catch (DetectorException $error) {
+            throw new CompressionException('Unable to detect source image MIME type.', previous: $error);
+        }
 
         if ($sourceMimeType === null) {
             throw CompressionException::undetectableSourceType();
