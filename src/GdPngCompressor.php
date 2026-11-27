@@ -29,8 +29,8 @@ final readonly class GdPngCompressor implements ImageCompressorInterface
         if ($options?->quality !== null || $options?->avifSpeed !== null) {
             throw new CompressionException('PNG supports compressionLevel, not quality or avifSpeed.');
         }
-        $level = $options?->compressionLevel ?? $this->defaultCompressionLevel;
-        $content = GdProcessor::process($source, self::SUPPORTED, 'image/png', $level, $this->limits, avifSpeed: null, onlyIfSmaller: $options?->onlyIfSmaller ?? false);
+        $level = $options->compressionLevel ?? $this->defaultCompressionLevel;
+        $content = GdProcessor::process($source, self::SUPPORTED, 'image/png', $level, $this->limits, avifSpeed: null, onlyIfSmaller: $options->onlyIfSmaller ?? false);
 
         return new CompressedImage($content, 'image/png', 'png');
     }

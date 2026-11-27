@@ -29,8 +29,8 @@ final readonly class GdJpegCompressor implements ImageCompressorInterface
         if ($options?->compressionLevel !== null || $options?->avifSpeed !== null) {
             throw new CompressionException('Options are not supported by this image codec.');
         }
-        $level = $options?->quality ?? $this->defaultQuality;
-        $content = GdProcessor::process($source, self::SUPPORTED, 'image/jpeg', $level, $this->limits, avifSpeed: null, onlyIfSmaller: $options?->onlyIfSmaller ?? false);
+        $level = $options->quality ?? $this->defaultQuality;
+        $content = GdProcessor::process($source, self::SUPPORTED, 'image/jpeg', $level, $this->limits, avifSpeed: null, onlyIfSmaller: $options->onlyIfSmaller ?? false);
 
         return new CompressedImage($content, 'image/jpeg', 'jpg');
     }

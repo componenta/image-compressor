@@ -29,8 +29,8 @@ final readonly class GdAvifCompressor implements ImageCompressorInterface
         if ($options?->compressionLevel !== null) {
             throw new CompressionException('Options are not supported by this image codec.');
         }
-        $level = $options?->quality ?? $this->defaultQuality;
-        $content = GdProcessor::process($source, self::SUPPORTED, 'image/avif', $level, $this->limits, avifSpeed: $options?->avifSpeed, onlyIfSmaller: $options?->onlyIfSmaller ?? false);
+        $level = $options->quality ?? $this->defaultQuality;
+        $content = GdProcessor::process($source, self::SUPPORTED, 'image/avif', $level, $this->limits, avifSpeed: $options?->avifSpeed, onlyIfSmaller: $options->onlyIfSmaller ?? false);
 
         return new CompressedImage($content, 'image/avif', 'avif');
     }
