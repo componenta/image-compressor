@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Componenta\Image\${ex};
-use Componenta\Image\${jpeg};
-use Componenta\Image\${png};
+use Componenta\Image\CompressionException;
+use Componenta\Image\GdJpegCompressor;
+use Componenta\Image\GdPngCompressor;
 use Componenta\Image\Compressor\Internal\EncodedOutput;
 
 function compressorContainerFixture(string $format, bool $progressive = false): string
