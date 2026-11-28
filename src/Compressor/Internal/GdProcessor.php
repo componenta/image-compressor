@@ -86,9 +86,7 @@ final class GdProcessor
         if ($orientation !== 1) {
             $image = self::orientJpeg($image, $orientation);
         }
-        if ($target === 'image/jpeg' && $mime !== 'image/jpeg') {
-            $image = self::flatten($image);
-        } elseif ($target === 'image/webp' || $target === 'image/avif') {
+        if ($target === 'image/webp' || $target === 'image/avif') {
             if (!imageistruecolor($image)) {
                 self::requireSuccess(static fn() => imagepalettetotruecolor($image), 'Failed to convert image palette.');
             } elseif (imagecolortransparent($image) >= 0) {
@@ -213,24 +211,6 @@ final class GdProcessor
         }
 
         return $rotated;
-    }
-
-    private static function flatten(GdImage $source): GdImage
-    {
-        $width = imagesx($source);
-        $height = imagesy($source);
-        $canvas = self::native(static fn() => imagecreatetruecolor($width, $height));
-        if (!$canvas instanceof GdImage) {
-            throw new CompressionException('Failed to create JPEG canvas.');
-        }
-        $background = self::native(static fn() => imagecolorallocate($canvas, 255, 255, 255));
-        if ($background === false) {
-            throw new CompressionException('Failed to allocate JPEG background.');
-        }
-        self::requireSuccess(static fn() => imagefill($canvas, 0, 0, $background), 'Failed to fill JPEG canvas.');
-        self::requireSuccess(static fn() => imagecopy($canvas, $source, 0, 0, 0, 0, $width, $height), 'Failed to flatten JPEG transparency.');
-
-        return $canvas;
     }
 
     private static function expandColorKey(GdImage $source): GdImage
