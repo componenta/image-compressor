@@ -24,8 +24,19 @@ function compressorOrientationFixture(int $orientation, bool $littleEndian): str
     return substr($jpeg, 0, 2) . "\xff\xe1" . pack('n', strlen($exif) + 2) . $exif . substr($jpeg, 2);
 }
 
-test('all EXIF orientations preserve visual corner positions', function (int $orientation, array $corners, bool $littleEndian): void {
+test('all EXIF orientations preserve visual corner positions', function (int $orientation, array $corners, bool $littleEndian, string $xmpPlacement): void {
     $source = compressorOrientationFixture($orientation, $littleEndian);
+    if ($xmpPlacement !== 'none') {
+        // XMP and EXIF are both valid APP1 segments. The XMP packet is not
+        // TIFF data and must not be passed to the native EXIF reader.
+        $payload = "http://ns.adobe.com/xap/1.0/\0"
+            . '<x:xmpmeta xmlns:x="adobe:ns:meta/"/>';
+        $xmp = "\xff\xe1" . pack('n', strlen($payload) + 2) . $payload;
+        $offset = $xmpPlacement === 'before'
+            ? 2
+            : 4 + unpack('n', $source, 4)[1];
+        $source = substr_replace($source, $xmp, $offset, 0);
+    }
     $result = (new GdJpegCompressor())->compress($source, new ImageCompressionOptions(quality: 100));
     $decoded = imagecreatefromstring($result->content);
     expect($decoded)->toBeInstanceOf(GdImage::class);
@@ -60,10 +71,18 @@ test('all EXIF orientations preserve visual corner positions', function (int $or
     '6 big' => [6, [2, 0, 3, 1], false],
     '7 big' => [7, [3, 1, 2, 0], false],
     '8 big' => [8, [1, 3, 0, 2], false],
-]);
+])->with(['without XMP' => 'none', 'XMP before EXIF' => 'before', 'XMP after EXIF' => 'after']);
 
 test('rotation is subject to both dimension limits', function (): void {
     $codec = new GdJpegCompressor(limits: new ImageCompressionLimits(maxHeight: 30));
     expect(fn() => $codec->compress(compressorOrientationFixture(6, true)))
         ->toThrow(CompressionException::class, 'Oriented image dimensions');
 });
+
+test('malformed EXIF and invalid orientation remain rejected', function (string $kind): void {
+    $source = compressorOrientationFixture(9, true);
+    if ($kind === 'invalid TIFF alignment') {
+        $source = substr_replace($source, 'ZZ', 12, 2);
+    }
+    expect(fn() => (new GdJpegCompressor())->compress($source))->toThrow(CompressionException::class);
+})->with(['invalid orientation', 'invalid TIFF alignment']);
