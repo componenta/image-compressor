@@ -50,3 +50,23 @@ jobs:
           IMAGE_BENCH_BASELINE: '0'
         run: |
           vendor/bin/phpbench run benchmarks/ImageCompressorBench.php --report=aggregate --iterations=3 --revs=1
+      - name: Interleaved WebP and AVIF comparisons
+        run: |
+          set -euo pipefail
+          for variant in webp-webp-1000x1000-bytes webp-webp-1000x1000-stream avif-avif-1000x1000-bytes avif-avif-1000x1000-stream; do
+            for attempt in 1 2 3; do
+              if [ "$attempt" = 2 ]; then
+                order="candidate baseline"
+              else
+                order="baseline candidate"
+              fi
+              for version in $order; do
+                echo "IMAGE_PAIRED_COMPARE $variant $attempt $version"
+                if [ "$version" = baseline ]; then
+                  IMAGE_BENCH_BASELINE=1 vendor/bin/phpbench run benchmarks/ImageCompressorBench.php --bootstrap=.benchmark-baseline/vendor/autoload.php --variant="$variant" --report=aggregate --iterations=3 --revs=1
+                else
+                  IMAGE_BENCH_BASELINE=0 vendor/bin/phpbench run benchmarks/ImageCompressorBench.php --variant="$variant" --report=aggregate --iterations=3 --revs=1
+                fi
+              done
+            done
+          done
