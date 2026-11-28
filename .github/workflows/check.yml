@@ -29,6 +29,14 @@ jobs:
       - run: composer check
       - name: Repeated processing memory smoke
         run: php benchmarks/worker-memory.php
+      - name: AVIF worker memory comparison against native GD
+        run: |
+          set -euo pipefail
+          for case in avif:avif; do
+            php benchmarks/worker-codec-probe.php native "${case%:*}" "${case#*:}" | tee "$RUNNER_TEMP/native-worker.jsonl"
+            php benchmarks/worker-codec-probe.php library "${case%:*}" "${case#*:}" | tee "$RUNNER_TEMP/library-worker.jsonl"
+            php benchmarks/check-worker-memory.php "$RUNNER_TEMP/library-worker.jsonl" "$RUNNER_TEMP/native-worker.jsonl"
+          done
       - name: PHPBench smoke
         if: matrix.php == '8.4'
         run: composer bench -- --variant=jpeg-jpeg-1000x1000-bytes --iterations=1 --revs=1
